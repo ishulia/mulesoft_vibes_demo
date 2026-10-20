@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:munit="http://www.mulesoft.org/schema/mule/munit"
+      xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core       http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/munit      http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+        http://www.mulesoft.org/schema/mule/munit-tools http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd
+        http://www.mulesoft.org/schema/mule/http       http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/ee/core    http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+    <!--
+    MUNIT TEST SUITE: shipment-tracking-api-test-suite.xml
+    Covers: shipment-tracking-api.xml
+
+    Test cases defined below are STUBS. Each test case contains the correct
+    MUnit structure but its assertion body is left as a TODO placeholder.
+    Implement assertions when the corresponding business logic is added.
+
+    Run all tests:
+      mvn clean test
+
+    Test naming convention:
+      {flow-name}-{scenario}
+    -->
+
+    <munit:config
+        name="shipment-tracking-api-test-suite.xml"
+        doc:name="MUnit Config"
+        doc:description="MUnit configuration for the Universal Shipment Tracking API test suite." />
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         GET /health — test cases
+         Target flow: get:\health:shipmentTrackingApiConfig
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <munit:test
+        name="get-health-returns-200-up"
+        description="GET /health should return HTTP 200 with status UP."
+        doc:name="GET /health returns 200 UP"
+        doc:description="Verifies that the health endpoint responds with status UP and HTTP 200.">
+
+        <munit:execution>
+            <!-- Execute the health implementation flow directly -->
+            <flow-ref
+                name="get:\health:shipmentTrackingApiConfig"
+                doc:name="Call GET /health flow"
+                doc:description="Invokes the health check implementation flow." />
+        </munit:execution>
+
+        <munit:validation>
+            <!-- TODO: Uncomment and complete assertions when business logic is implemented.
+
+            <munit-tools:assert-that
+                expression="#[payload.status]"
+                is="#[MunitTools::equalTo('UP')]"
+                doc:name="Assert status is UP"
+                doc:description="Verifies the response body contains status: UP." />
+
+            <munit-tools:assert-that
+                expression="#[vars.httpStatus]"
+                is="#[MunitTools::equalTo('200')]"
+                doc:name="Assert HTTP 200"
+                doc:description="Verifies the HTTP status variable is set to 200." />
+            -->
+            <logger
+                level="WARN"
+                message="[TEST] get-health-returns-200-up: assertions not yet implemented."
+                doc:name="Stub Warning"
+                doc:description="Placeholder log until real assertions are added." />
+        </munit:validation>
+
+    </munit:test>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         GET /shipments/{trackingNumber} — test cases
+         Target flow: get:\shipments\{trackingNumber}:shipmentTrackingApiConfig
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <munit:test
+        name="get-shipments-trackingNumber-returns-200-for-valid-ups-number"
+        description="GET /shipments/{trackingNumber}?carrier=UPS with a valid tracking number should return 200 with a ShipmentTracking body."
+        doc:name="GET /shipments valid UPS tracking number returns 200"
+        doc:description="Happy path: valid UPS tracking number with carrier hint returns a normalised ShipmentTracking response.">
+
+        <munit:behavior>
+            <!-- Set up flow variables that the implementation flow expects -->
+            <set-variable
+                variableName="trackingNumber"
+                value="1Z999AA10123456784"
+                doc:name="Set trackingNumber"
+                doc:description="Provides a well-formed UPS tracking number." />
+            <set-variable
+                variableName="carrier"
+                value="UPS"
+                doc:name="Set carrier"
+                doc:description="Sets the carrier hint to UPS." />
+
+            <!-- TODO: Add munit-tools:mock-when to mock the UPS adapter sub-flow
+                 so the test does not make real HTTP calls:
+
+            <munit-tools:mock-when
+                processor="mule:flow-ref"
+                doc:name="Mock UPS adapter"
+                doc:description="Replaces the UPS adapter sub-flow call with a canned ShipmentTracking stub.">
+                <munit-tools:with-attributes>
+                    <munit-tools:with-attribute attributeName="name" whereValue="ups-adapter-sub-flow" />
+                </munit-tools:with-attributes>
+                <munit-tools:then-return>
+                    <munit-tools:payload
+                        value="#[{ trackingNumber: '1Z999AA10123456784', carrier: 'UPS', status: 'IN_TRANSIT', events: [] }]"
+                        mediaType="application/java" />
+                </munit-tools:then-return>
+            </munit-tools:mock-when>
+            -->
+        </munit:behavior>
+
+        <munit:execution>
+            <flow-ref
+                name="get:\shipments\{trackingNumber}:shipmentTrackingApiConfig"
+                doc:name="Call GET /shipments flow"
+                doc:description="Invokes the tracking implementation flow." />
+        </munit:execution>
+
+        <munit:validation>
+            <!-- TODO: Uncomment when business logic is implemented.
+
+            <munit-tools:assert-that
+                expression="#[payload.trackingNumber]"
+                is="#[MunitTools::equalTo('1Z999AA10123456784')]"
+                doc:name="Assert trackingNumber"
+                doc:description="Verifies the tracking number is echoed in the response." />
+
+            <munit-tools:assert-that
+                expression="#[payload.carrier]"
+                is="#[MunitTools::equalTo('UPS')]"
+                doc:name="Assert carrier is UPS"
+                doc:description="Verifies the carrier in the response is UPS." />
+
+            <munit-tools:assert-that
+                expression="#[payload.status]"
+                is="#[MunitTools::not(MunitTools::nullValue())]"
+                doc:name="Assert status is present"
+                doc:description="Verifies the normalised status field is populated." />
+            -->
+            <logger
+                level="WARN"
+                message="[TEST] get-shipments-valid-ups: assertions not yet implemented."
+                doc:name="Stub Warning"
+                doc:description="Placeholder log until real assertions are added." />
+        </munit:validation>
+
+    </munit:test>
+
+    <munit:test
+        name="get-shipments-trackingNumber-returns-stub-501-when-not-implemented"
+        description="GET /shipments/{trackingNumber} currently returns 501 because business logic is not yet implemented."
+        doc:name="GET /shipments returns 501 stub until implemented"
+        doc:description="Verifies the scaffold stub behaviour. Remove this test once real logic replaces the 501 stub in the implementation flow.">
+
+        <munit:behavior>
+            <set-variable
+                variableName="trackingNumber"
+                value="STUB-TRACKING-001"
+                doc:name="Set trackingNumber"
+                doc:description="Arbitrary tracking number for the stub test." />
+            <set-variable
+                variableName="carrier"
+                value="FEDEX"
+                doc:name="Set carrier"
+                doc:description="Arbitrary carrier for the stub test." />
+        </munit:behavior>
+
+        <munit:execution>
+            <flow-ref
+                name="get:\shipments\{trackingNumber}:shipmentTrackingApiConfig"
+                doc:name="Call GET /shipments flow"
+                doc:description="Invokes the tracking implementation flow." />
+        </munit:execution>
+
+        <munit:validation>
+            <munit-tools:assert-that
+                expression="#[vars.httpStatus]"
+                is="#[MunitTools::equalTo('501')]"
+                doc:name="Assert HTTP Status 501"
+                doc:description="Confirms the scaffold returns 501 until business logic is wired in." />
+
+            <munit-tools:assert-that
+                expression="#[payload.code]"
+                is="#[MunitTools::equalTo('NOT_IMPLEMENTED')]"
+                doc:name="Assert NOT_IMPLEMENTED code"
+                doc:description="Confirms the error code in the stub response body." />
+        </munit:validation>
+
+    </munit:test>
+
+    <munit:test
+        name="get-shipments-trackingNumber-missing-carrier-auto-detect-placeholder"
+        description="GET /shipments/{trackingNumber} without a carrier query param — auto-detection placeholder test."
+        doc:name="GET /shipments without carrier param (auto-detect placeholder)"
+        doc:description="Placeholder test for carrier auto-detection. Implement when the auto-detect logic is added to the implementation flow.">
+
+        <munit:behavior>
+            <set-variable
+                variableName="trackingNumber"
+                value="1Z999AA10123456784"
+                doc:name="Set trackingNumber"
+                doc:description="A UPS-formatted tracking number submitted without a carrier hint." />
+            <set-variable
+                variableName="carrier"
+                value="#[null]"
+                doc:name="Set carrier to null"
+                doc:description="Simulates a request without a carrier query parameter, triggering auto-detection." />
+        </munit:behavior>
+
+        <munit:execution>
+            <flow-ref
+                name="get:\shipments\{trackingNumber}:shipmentTrackingApiConfig"
+                doc:name="Call GET /shipments flow"
+                doc:description="Invokes the tracking flow with no carrier hint." />
+        </munit:execution>
+
+        <munit:validation>
+            <!-- TODO: Once auto-detection is implemented, assert that vars.carrier
+                 was populated to "UPS" and the response contains a valid ShipmentTracking body. -->
+            <logger
+                level="WARN"
+                message="[TEST] auto-detect-placeholder: assertions not yet implemented."
+                doc:name="Stub Warning"
+                doc:description="Placeholder log until auto-detection logic and assertions are added." />
+        </munit:validation>
+
+    </munit:test>
+
+</mule>
