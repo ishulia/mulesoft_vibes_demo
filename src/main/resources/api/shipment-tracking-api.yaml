@@ -1,0 +1,278 @@
+openapi: "3.0.0"
+
+info:
+  title: Universal Shipment Tracking API
+  version: "1.0.0"
+  description: |
+    Experience Layer API that provides a single, normalised interface for tracking
+    shipments across multiple couriers (FedEx, UPS, DHL, USPS).
+
+    Consumers never deal with carrier-specific schemas or authentication — they
+    call one endpoint with a tracking number and (optionally) a carrier hint, and
+    receive a canonical `ShipmentTracking` response regardless of which carrier
+    fulfilled the shipment.
+  contact:
+    name: Integration Team
+    email: integration@company.com
+
+servers:
+  - url: "http://localhost:8081/api/v1"
+    description: Local development
+
+tags:
+  - name: tracking
+    description: Shipment tracking operations
+  - name: health
+    description: API health and readiness checks
+
+paths:
+
+  /health:
+    get:
+      operationId: getHealth
+      summary: Health check
+      description: Returns the current health status of the API. Used by load-balancers and monitoring tools.
+      tags:
+        - health
+      responses:
+        "200":
+          description: API is healthy and ready to serve requests.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+              example:
+                status: UP
+                version: "1.0.0"
+
+  /shipments/{trackingNumber}:
+    get:
+      operationId: getShipmentTracking
+      summary: Track a shipment
+      description: |
+        Returns the current tracking status and full event history for the given
+        tracking number.
+
+        If `carrier` is not supplied, the API will attempt to auto-detect the
+        carrier from the tracking number format. When auto-detection is ambiguous,
+        a `400` is returned asking the caller to supply the `carrier` parameter.
+      tags:
+        - tracking
+      parameters:
+        - $ref: "#/components/parameters/trackingNumber"
+        - $ref: "#/components/parameters/carrier"
+      responses:
+        "200":
+          description: Tracking information retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShipmentTracking"
+              example:
+                trackingNumber: "1Z999AA10123456784"
+                carrier: UPS
+                status: IN_TRANSIT
+                estimatedDelivery: "2026-10-22"
+                origin:
+                  city: Chicago
+                  state: IL
+                  country: US
+                  postalCode: "60601"
+                destination:
+                  city: New York
+                  state: NY
+                  country: US
+                  postalCode: "10001"
+                events:
+                  - timestamp: "2026-10-20T08:30:00Z"
+                    location: "Chicago, IL"
+                    description: "Shipment picked up"
+                    status: PICKED_UP
+                  - timestamp: "2026-10-20T14:00:00Z"
+                    location: "Chicago Hub, IL"
+                    description: "Departed facility"
+                    status: IN_TRANSIT
+        "400":
+          description: Invalid request — missing or malformed parameters.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Tracking number not found at the carrier.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Carrier could not be auto-detected from the tracking number. Supply the `carrier` parameter.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error or upstream carrier API failure.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Carrier API is temporarily unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+
+  parameters:
+
+    trackingNumber:
+      name: trackingNumber
+      in: path
+      required: true
+      description: The carrier-issued tracking number for the shipment.
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 40
+        pattern: "^[A-Za-z0-9\\-]+$"
+      example: "1Z999AA10123456784"
+
+    carrier:
+      name: carrier
+      in: query
+      required: false
+      description: |
+        Optional hint identifying the carrier. When omitted, the API attempts
+        auto-detection from the tracking number format.
+      schema:
+        type: string
+        enum:
+          - FEDEX
+          - UPS
+          - DHL
+          - USPS
+      example: UPS
+
+  schemas:
+
+    HealthResponse:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - UP
+            - DOWN
+          description: Current health status of the API.
+        version:
+          type: string
+          description: Deployed API version.
+
+    ShipmentTracking:
+      type: object
+      required:
+        - trackingNumber
+        - carrier
+        - status
+      description: Normalised tracking response returned for any supported carrier.
+      properties:
+        trackingNumber:
+          type: string
+          description: The carrier-issued tracking number.
+        carrier:
+          type: string
+          enum:
+            - FEDEX
+            - UPS
+            - DHL
+            - USPS
+          description: Carrier that is handling the shipment.
+        status:
+          $ref: "#/components/schemas/ShipmentStatus"
+        estimatedDelivery:
+          type: string
+          format: date
+          description: "ISO 8601 date of expected delivery (yyyy-MM-dd). Null if unknown."
+        origin:
+          $ref: "#/components/schemas/Address"
+        destination:
+          $ref: "#/components/schemas/Address"
+        events:
+          type: array
+          description: Chronological list of tracking events, most recent last.
+          items:
+            $ref: "#/components/schemas/TrackingEvent"
+
+    Address:
+      type: object
+      description: A postal address associated with a tracking event.
+      properties:
+        city:
+          type: string
+        state:
+          type: string
+          description: State or province code.
+        country:
+          type: string
+          description: ISO 3166-1 alpha-2 country code.
+          minLength: 2
+          maxLength: 2
+        postalCode:
+          type: string
+
+    TrackingEvent:
+      type: object
+      required:
+        - timestamp
+        - description
+        - status
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: ISO 8601 UTC timestamp of the event.
+        location:
+          type: string
+          description: Human-readable location string (city, state, country).
+        description:
+          type: string
+          description: Carrier-supplied plain-text description of the event.
+        status:
+          $ref: "#/components/schemas/ShipmentStatus"
+
+    ShipmentStatus:
+      type: string
+      description: |
+        Normalised status code mapping carrier-specific values to a canonical set.
+        All carrier statuses are translated to one of these values by the
+        DataWeave `map-carrier-status.dwl` script.
+      enum:
+        - PICKED_UP
+        - IN_TRANSIT
+        - OUT_FOR_DELIVERY
+        - DELIVERED
+        - EXCEPTION
+        - RETURNED
+        - UNKNOWN
+
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: Machine-readable error code.
+          example: TRACKING_NOT_FOUND
+        message:
+          type: string
+          description: Human-readable description of the error.
+          example: "Tracking number 1Z999AA10123456784 was not found at UPS."
+        correlationId:
+          type: string
+          description: Mule correlation ID for log correlation.
