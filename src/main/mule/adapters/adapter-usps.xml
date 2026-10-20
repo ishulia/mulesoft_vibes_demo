@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core    http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http    http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+    <!--
+    USPS ADAPTER SUB-FLOW
+    Responsibility:
+      1. Accept vars.trackingNumber set by the main flow.
+      2. Call the USPS Web Tools Tracking API (user-ID authentication).
+      3. Transform the raw USPS XML response into the canonical ShipmentTracking
+         schema using dw/transform-to-normalized-response.dwl
+      4. Return the normalised payload to the calling flow.
+
+    Connection config : usps-httpRequestConfig  (global-configs.xml)
+    Carrier API docs  : https://www.usps.com/business/web-tools-apis/track-and-confirm-api.htm
+
+    NOTE: USPS Web Tools returns XML, not JSON. The normalisation DataWeave
+    script must parse application/xml from the USPS response before mapping
+    to the canonical Java object.
+
+    TODO steps when implementing business logic:
+      Step 1 - USPS uses a UserId query parameter (no OAuth needed). Read
+               usps.api.userId from config.yaml.
+      Step 2 - Add an http:request to GET /ShippingAPI.dll with query params
+               API=TrackV2 and XML={encoded TrackRequest XML} on the
+               usps-httpRequestConfig.
+      Step 3 - Add an ee:transform that parses the XML response and maps it
+               to the canonical ShipmentTracking Java map using
+               transform-to-normalized-response.dwl (input: application/xml)
+    -->
+
+    <sub-flow name="usps-adapter-sub-flow"
+              doc:name="USPS Adapter"
+              doc:description="Calls the USPS Web Tools Tracking API and normalises the XML response into the canonical ShipmentTracking schema. Expects vars.trackingNumber to be set by the caller.">
+
+        <logger
+            level="INFO"
+            message="#['[USPS Adapter] Fetching tracking info for: ' ++ (vars.trackingNumber default 'UNKNOWN')]"
+            doc:name="Log USPS Request"
+            doc:description="Logs the tracking number being submitted to the USPS Web Tools API." />
+
+        <!-- TODO Step 1: USPS uses UserId query param auth. No token fetch needed.
+             Pass usps.api.userId as a query parameter on the http:request in Step 2. -->
+
+        <!-- TODO Step 2: Insert http:request to USPS /ShippingAPI.dll endpoint here. -->
+
+        <!-- TODO Step 3: Insert ee:transform to parse XML and normalise USPS response here.
+             Note: set input payload as application/xml before mapping to canonical schema. -->
+
+        <!-- Stub placeholder active until the three TODO steps above are implemented. -->
+        <logger
+            level="WARN"
+            message="[USPS Adapter] Business logic not yet implemented. Returning stub payload."
+            doc:name="Log Not Implemented"
+            doc:description="Temporary warning. Remove when the USPS HTTP call and DataWeave normalisation are in place." />
+
+        <ee:transform
+            doc:name="USPS Stub Response"
+            doc:description="Returns a minimal stub ShipmentTracking object. Replace with the real normalisation transform once Step 2 and Step 3 are implemented.">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+    trackingNumber: vars.trackingNumber,
+    carrier:        "USPS",
+    status:         "UNKNOWN",
+    events:         []
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+
+    </sub-flow>
+
+</mule>

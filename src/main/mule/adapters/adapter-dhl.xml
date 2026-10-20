@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core    http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http    http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+    <!--
+    DHL ADAPTER SUB-FLOW
+    Responsibility:
+      1. Accept vars.trackingNumber set by the main flow.
+      2. Call the DHL Shipment Tracking API (API key authentication).
+      3. Transform the raw DHL response into the canonical ShipmentTracking
+         schema using dw/transform-to-normalized-response.dwl
+      4. Return the normalised payload to the calling flow.
+
+    Connection config : dhl-httpRequestConfig  (global-configs.xml)
+    Carrier API docs  : https://developer.dhl.com/api-reference/shipment-tracking
+
+    TODO steps when implementing business logic:
+      Step 1 - DHL uses an API key (no OAuth token fetch needed). The key is
+               passed as the DHL-API-Key request header, read from
+               config.yaml (dhl.api.key).
+      Step 2 - Add an http:request to GET /track/shipments?trackingNumber={trackingNumber}
+               on the dhl-httpRequestConfig with the DHL-API-Key header.
+      Step 3 - Add an ee:transform that maps the raw DHL response body to the
+               canonical ShipmentTracking Java map using transform-to-normalized-response.dwl
+    -->
+
+    <sub-flow name="dhl-adapter-sub-flow"
+              doc:name="DHL Adapter"
+              doc:description="Calls the DHL Shipment Tracking API and normalises the response into the canonical ShipmentTracking schema. Expects vars.trackingNumber to be set by the caller.">
+
+        <logger
+            level="INFO"
+            message="#['[DHL Adapter] Fetching tracking info for: ' ++ (vars.trackingNumber default 'UNKNOWN')]"
+            doc:name="Log DHL Request"
+            doc:description="Logs the tracking number being submitted to the DHL Tracking API." />
+
+        <!-- TODO Step 1: DHL uses API key auth. No token fetch sub-flow needed.
+             Set the DHL-API-Key header directly on the http:request in Step 2. -->
+
+        <!-- TODO Step 2: Insert http:request to DHL /track/shipments endpoint here. -->
+
+        <!-- TODO Step 3: Insert ee:transform to normalise DHL response here. -->
+
+        <!-- Stub placeholder active until the three TODO steps above are implemented. -->
+        <logger
+            level="WARN"
+            message="[DHL Adapter] Business logic not yet implemented. Returning stub payload."
+            doc:name="Log Not Implemented"
+            doc:description="Temporary warning. Remove when the DHL HTTP call and DataWeave normalisation are in place." />
+
+        <ee:transform
+            doc:name="DHL Stub Response"
+            doc:description="Returns a minimal stub ShipmentTracking object. Replace with the real normalisation transform once Step 2 and Step 3 are implemented.">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+    trackingNumber: vars.trackingNumber,
+    carrier:        "DHL",
+    status:         "UNKNOWN",
+    events:         []
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+
+    </sub-flow>
+
+</mule>

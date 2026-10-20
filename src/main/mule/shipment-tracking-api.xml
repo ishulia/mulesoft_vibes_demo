@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core        http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http        http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd
+        http://www.mulesoft.org/schema/mule/ee/core     http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         APIKIT CONFIGURATION
+         Points to the OAS 3.0 spec in src/main/resources/api/.
+         APIkit validates every inbound request against the spec and
+         routes to the matching implementation flow by convention:
+           {method}:\{path}:{config-name}
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <apikit:config
+        name="shipmentTrackingApiConfig"
+        raml="api/shipment-tracking-api.yaml"
+        outboundHeadersMapName="outboundHeaders"
+        httpStatusVarName="httpStatus"
+        doc:name="APIkit Config"
+        doc:description="APIkit router configuration bound to the OAS 3.0 spec. Handles request validation, routing, and CORS headers." />
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         MAIN FLOW — entry point
+         Receives all HTTP requests under /api/v1/* and hands them to
+         the APIkit router. The router validates the request against
+         the OAS spec and dispatches to the correct implementation flow.
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <flow name="shipment-tracking-api-main"
+          doc:name="Shipment Tracking API — Main"
+          doc:description="Entry point for all inbound requests. Listens on /api/v1/* and delegates routing and OAS validation to the APIkit router.">
+
+        <http:listener
+            config-ref="api-httpListenerConfig"
+            path="/api/v1/*"
+            doc:name="HTTP Listener /api/v1/*"
+            doc:description="Listens for all HTTP requests to the /api/v1 base path on the port configured in global-configs.xml." />
+
+        <apikit:router
+            config-ref="shipmentTrackingApiConfig"
+            doc:name="APIkit Router"
+            doc:description="Validates the inbound request against the OAS spec and routes to the matching implementation flow." />
+
+        <error-handler>
+            <!-- APIkit bad-request / method-not-allowed / not-found errors -->
+            <on-error-propagate
+                type="APIKIT:BAD_REQUEST"
+                doc:name="Bad Request"
+                doc:description="Returns 400 when the request body or parameters fail OAS schema validation.">
+                <ee:transform
+                    doc:name="Build 400 Response"
+                    doc:description="Builds a normalised 400 ErrorResponse with the APIkit validation message.">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    code:          "BAD_REQUEST",
+    message:       error.description,
+    correlationId: correlationId
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[400]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+
+            <on-error-propagate
+                type="APIKIT:NOT_FOUND"
+                doc:name="Not Found"
+                doc:description="Returns 404 when the requested path does not exist in the OAS spec.">
+                <ee:transform
+                    doc:name="Build 404 Response"
+                    doc:description="Builds a normalised 404 ErrorResponse.">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    code:          "NOT_FOUND",
+    message:       "The requested resource does not exist.",
+    correlationId: correlationId
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[404]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+
+            <on-error-propagate
+                type="APIKIT:METHOD_NOT_ALLOWED"
+                doc:name="Method Not Allowed"
+                doc:description="Returns 405 when the HTTP method is not defined for the path in the OAS spec.">
+                <ee:transform
+                    doc:name="Build 405 Response"
+                    doc:description="Builds a normalised 405 ErrorResponse.">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    code:          "METHOD_NOT_ALLOWED",
+    message:       "HTTP method not allowed for this resource.",
+    correlationId: correlationId
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[405]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+
+            <on-error-propagate
+                type="APIKIT:UNSUPPORTED_MEDIA_TYPE"
+                doc:name="Unsupported Media Type"
+                doc:description="Returns 415 when the Content-Type is not supported by the spec.">
+                <ee:transform
+                    doc:name="Build 415 Response"
+                    doc:description="Builds a normalised 415 ErrorResponse.">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    code:          "UNSUPPORTED_MEDIA_TYPE",
+    message:       "Content-Type not supported.",
+    correlationId: correlationId
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[415]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+
+    </flow>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         IMPLEMENTATION FLOWS
+         Named by the APIkit routing convention:
+           {method}:\{path-segments}:{apikit-config-name}
+
+         No business logic is implemented here yet.
+         Each flow is a placeholder ready to be wired to the
+         carrier-selector logic and adapter sub-flows.
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <!-- GET /api/v1/health -->
+    <flow name="get:\health:shipmentTrackingApiConfig"
+          doc:name="GET /health"
+          doc:description="Returns API health status. No upstream calls needed — this is a lightweight liveness check.">
+
+        <logger
+            level="DEBUG"
+            message="#['[GET /health] Health check requested by ' ++ (attributes.remoteAddress default 'unknown')]"
+            doc:name="Log Health Request"
+            doc:description="Logs every health check request at DEBUG level to avoid polluting INFO logs." />
+
+        <!-- TODO: Replace with actual health check logic when implementing business logic.
+                   Consider checking downstream carrier connectivity here if needed. -->
+        <ee:transform
+            doc:name="Build Health Response"
+            doc:description="Returns a static UP response. Replace with dynamic health aggregation when implementing business logic.">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    status:  "UP",
+    version: "1.0.0"
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+
+    </flow>
+
+    <!-- GET /api/v1/shipments/{trackingNumber} -->
+    <flow name="get:\shipments\{trackingNumber}:shipmentTrackingApiConfig"
+          doc:name="GET /shipments/{trackingNumber}"
+          doc:description="Tracks a shipment. Reads the trackingNumber path param and optional carrier query param, selects the correct carrier adapter sub-flow, and returns a normalised ShipmentTracking response.">
+
+        <logger
+            level="INFO"
+            message="#['[GET /shipments] trackingNumber=' ++ attributes.uriParams.trackingNumber ++ ', carrier=' ++ (attributes.queryParams.carrier default 'auto-detect')]"
+            doc:name="Log Track Request"
+            doc:description="Logs every inbound tracking request including the tracking number and carrier hint." />
+
+        <!-- ── Step 1: Capture inbound parameters as variables ── -->
+        <set-variable
+            variableName="trackingNumber"
+            value="#[attributes.uriParams.trackingNumber]"
+            doc:name="Set trackingNumber"
+            doc:description="Stores the path parameter trackingNumber in a flow variable for use by adapter sub-flows." />
+
+        <set-variable
+            variableName="carrier"
+            value="#[attributes.queryParams.carrier default null]"
+            doc:name="Set carrier"
+            doc:description="Stores the optional carrier query parameter. Null triggers auto-detection logic (to be implemented)." />
+
+        <!-- ── Step 2: TODO — Auto-detect carrier when not supplied ──
+             When business logic is added, insert a sub-flow call here that
+             examines vars.trackingNumber and populates vars.carrier using
+             the carrier-detection DataWeave module.                         -->
+
+        <!-- ── Step 3: TODO — Route to the correct carrier adapter ──
+             When business logic is added, replace this logger with a
+             <choice> router that dispatches to:
+               fedex-adapter-sub-flow   when vars.carrier == "FEDEX"
+               ups-adapter-sub-flow     when vars.carrier == "UPS"
+               dhl-adapter-sub-flow     when vars.carrier == "DHL"
+               usps-adapter-sub-flow    when vars.carrier == "USPS"             -->
+
+        <logger
+            level="WARN"
+            message="[GET /shipments] Business logic not yet implemented. Returning 501 stub response."
+            doc:name="Log Not Implemented"
+            doc:description="Temporary warning log until the carrier routing and adapter sub-flows are implemented." />
+
+        <!-- Stub response — remove and replace with carrier adapter flow-ref -->
+        <ee:transform
+            doc:name="Build 501 Stub Response"
+            doc:description="Temporary 501 Not Implemented stub. Remove when business logic is wired in.">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    code:          "NOT_IMPLEMENTED",
+    message:       "Tracking logic is not yet implemented. This is a scaffold placeholder.",
+    correlationId: correlationId
+}]]></ee:set-payload>
+            </ee:message>
+            <ee:variables>
+                <ee:set-variable variableName="httpStatus"><![CDATA[501]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+
+    </flow>
+
+</mule>

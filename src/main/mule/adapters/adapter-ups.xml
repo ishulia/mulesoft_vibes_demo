@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core    http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http    http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+    <!--
+    UPS ADAPTER SUB-FLOW
+    Responsibility:
+      1. Accept vars.trackingNumber set by the main flow.
+      2. Call the UPS Tracking REST API (OAuth 2.0 client credentials).
+      3. Transform the raw UPS response into the canonical ShipmentTracking
+         schema using dw/transform-to-normalized-response.dwl
+      4. Return the normalised payload to the calling flow.
+
+    Connection config : ups-httpRequestConfig  (global-configs.xml)
+    Carrier API docs  : https://developer.ups.com/api/reference/tracking/
+
+    TODO steps when implementing business logic:
+      Step 1 - Add a token-fetch sub-flow that POSTs to the UPS OAuth endpoint
+               (https://onlinetools.ups.com/security/v1/oauth/token) using
+               client_id and client_secret from config.yaml, and caches the
+               token in ObjectStore until it expires.
+      Step 2 - Add an http:request to GET /api/track/v1/details/{trackingNumber}
+               on the ups-httpRequestConfig, passing the Bearer token and the
+               transId / transactionSrc query parameters.
+      Step 3 - Add an ee:transform that maps the raw UPS response body to the
+               canonical ShipmentTracking Java map using transform-to-normalized-response.dwl
+    -->
+
+    <sub-flow name="ups-adapter-sub-flow"
+              doc:name="UPS Adapter"
+              doc:description="Calls the UPS Tracking REST API and normalises the response into the canonical ShipmentTracking schema. Expects vars.trackingNumber to be set by the caller.">
+
+        <logger
+            level="INFO"
+            message="#['[UPS Adapter] Fetching tracking info for: ' ++ (vars.trackingNumber default 'UNKNOWN')]"
+            doc:name="Log UPS Request"
+            doc:description="Logs the tracking number being submitted to the UPS Tracking API." />
+
+        <!-- TODO Step 1: Insert flow-ref to ups-token-fetch-sub-flow here. -->
+
+        <!-- TODO Step 2: Insert http:request to UPS Track Details endpoint here. -->
+
+        <!-- TODO Step 3: Insert ee:transform to normalise UPS response here. -->
+
+        <!-- Stub placeholder active until the three TODO steps above are implemented. -->
+        <logger
+            level="WARN"
+            message="[UPS Adapter] Business logic not yet implemented. Returning stub payload."
+            doc:name="Log Not Implemented"
+            doc:description="Temporary warning. Remove when the UPS HTTP call and DataWeave normalisation are in place." />
+
+        <ee:transform
+            doc:name="UPS Stub Response"
+            doc:description="Returns a minimal stub ShipmentTracking object. Replace with the real normalisation transform once Step 2 and Step 3 are implemented.">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+    trackingNumber: vars.trackingNumber,
+    carrier:        "UPS",
+    status:         "UNKNOWN",
+    events:         []
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+
+    </sub-flow>
+
+</mule>

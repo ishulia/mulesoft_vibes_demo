@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core    http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http    http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+    <!--
+    FEDEX ADAPTER SUB-FLOW
+    Responsibility:
+      1. Accept vars.trackingNumber set by the main flow.
+      2. Call the FedEx Tracking REST API (OAuth 2.0 client credentials).
+      3. Transform the raw FedEx response into the canonical ShipmentTracking
+         schema using the DataWeave module at dw/transform-to-normalized-response.dwl
+      4. Return the normalised payload to the calling flow.
+
+    Connection config : fedex-httpRequestConfig  (global-configs.xml)
+    Carrier API docs  : https://developer.fedex.com/api/en-us/catalog/tracking/v1/docs.html
+
+    TODO steps when implementing business logic:
+      Step 1 - Add a token-fetch sub-flow that POSTs to the FedEx OAuth endpoint,
+               uses client_id and client_secret from config.yaml, and caches the
+               token in ObjectStore until it expires.
+      Step 2 - Add an http:request to POST /track/v1/trackingnumbers on the
+               fedex-httpRequestConfig, passing the Bearer token and tracking number.
+      Step 3 - Add an ee:transform that maps the raw FedEx response body to the
+               canonical ShipmentTracking Java map using transform-to-normalized-response.dwl
+    -->
+
+    <sub-flow name="fedex-adapter-sub-flow"
+              doc:name="FedEx Adapter"
+              doc:description="Calls the FedEx Tracking REST API and normalises the response into the canonical ShipmentTracking schema. Expects vars.trackingNumber to be set by the caller.">
+
+        <logger
+            level="INFO"
+            message="#['[FedEx Adapter] Fetching tracking info for: ' ++ (vars.trackingNumber default 'UNKNOWN')]"
+            doc:name="Log FedEx Request"
+            doc:description="Logs the tracking number being submitted to the FedEx Tracking API." />
+
+        <!-- TODO Step 1: Insert flow-ref to fedex-token-fetch-sub-flow here. -->
+
+        <!-- TODO Step 2: Insert http:request to FedEx Track Numbers endpoint here. -->
+
+        <!-- TODO Step 3: Insert ee:transform to normalise FedEx response here. -->
+
+        <!-- Stub placeholder active until the three TODO steps above are implemented. -->
+        <logger
+            level="WARN"
+            message="[FedEx Adapter] Business logic not yet implemented. Returning stub payload."
+            doc:name="Log Not Implemented"
+            doc:description="Temporary warning. Remove when the FedEx HTTP call and DataWeave normalisation are in place." />
+
+        <ee:transform
+            doc:name="FedEx Stub Response"
+            doc:description="Returns a minimal stub ShipmentTracking object. Replace with the real normalisation transform once Step 2 and Step 3 are implemented.">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+    trackingNumber: vars.trackingNumber,
+    carrier:        "FEDEX",
+    status:         "UNKNOWN",
+    events:         []
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+
+    </sub-flow>
+
+</mule>

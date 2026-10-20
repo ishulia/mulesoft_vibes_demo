@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         PROPERTY SOURCES
+         All environment-specific values are injected from config.yaml.
+         Switch the active file at runtime via the
+         -Dmule.env=<uat|prod> JVM argument; the default resolves to
+         config.yaml (local / dev).
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <configuration-properties
+        file="config.yaml"
+        doc:name="Config Properties (dev)"
+        doc:description="Loads the base configuration properties file for the local/dev environment." />
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         HTTP LISTENER — inbound configuration
+         All API flows share a single listener config bound to
+         host 0.0.0.0 so it listens on all network interfaces.
+         Port is externalised to config.yaml so it can differ per env.
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <http:listener-config
+        name="api-httpListenerConfig"
+        doc:name="HTTP Listener Config"
+        doc:description="Shared HTTP listener configuration used by the APIkit router. Binds to all interfaces on the port defined in config.yaml.">
+        <http:listener-connection
+            host="0.0.0.0"
+            port="${http.port}" />
+    </http:listener-config>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         HTTP REQUEST CONFIGS — outbound calls to carrier APIs
+         One request-config per carrier allows independent timeout,
+         TLS, and base-path tuning without touching flow XML.
+         Credentials are injected from config.yaml placeholders.
+
+         NOTE: Connection details are left as property placeholders.
+               Populate the matching keys in config.yaml before running.
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <http:request-config
+        name="fedex-httpRequestConfig"
+        doc:name="FedEx HTTP Request Config"
+        doc:description="Outbound HTTP connection to the FedEx Tracking REST API. Base URL and timeout are read from config.yaml.">
+        <http:request-connection
+            protocol="HTTPS"
+            host="${fedex.api.host}"
+            port="443" />
+    </http:request-config>
+
+    <http:request-config
+        name="ups-httpRequestConfig"
+        doc:name="UPS HTTP Request Config"
+        doc:description="Outbound HTTP connection to the UPS Tracking REST API. Base URL and timeout are read from config.yaml.">
+        <http:request-connection
+            protocol="HTTPS"
+            host="${ups.api.host}"
+            port="443" />
+    </http:request-config>
+
+    <http:request-config
+        name="dhl-httpRequestConfig"
+        doc:name="DHL HTTP Request Config"
+        doc:description="Outbound HTTP connection to the DHL Shipment Tracking API. Base URL and timeout are read from config.yaml.">
+        <http:request-connection
+            protocol="HTTPS"
+            host="${dhl.api.host}"
+            port="443" />
+    </http:request-config>
+
+    <http:request-config
+        name="usps-httpRequestConfig"
+        doc:name="USPS HTTP Request Config"
+        doc:description="Outbound HTTP connection to the USPS Web Tools API. Base URL and timeout are read from config.yaml.">
+        <http:request-connection
+            protocol="HTTPS"
+            host="${usps.api.host}"
+            port="443" />
+    </http:request-config>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         GLOBAL ERROR HANDLER
+         Catches unhandled exceptions at the application level.
+         Individual flows should catch specific error types locally;
+         this handler is the last-resort safety net.
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <error-handler name="global-error-handler"
+        doc:name="Global Error Handler"
+        doc:description="Application-level last-resort error handler. Returns a normalised ErrorResponse JSON body for any uncaught exception.">
+
+        <!-- Any HTTP 4xx from a downstream carrier call is re-surfaced as 502 -->
+        <on-error-propagate
+            type="HTTP:CLIENT_SECURITY, HTTP:FORBIDDEN, HTTP:UNAUTHORIZED"
+            doc:name="Upstream Auth Error"
+            doc:description="Handles authentication/authorisation errors from carrier API calls.">
+            <set-variable
+                variableName="httpStatus"
+                value="502"
+                doc:name="Set HTTP Status 502"
+                doc:description="Maps carrier auth errors to 502 Bad Gateway." />
+            <set-payload
+                value='#[%dw 2.0 output application/json --- { code: "UPSTREAM_AUTH_ERROR", message: "Authentication failure communicating with the upstream carrier API.", correlationId: correlationId }]'
+                doc:name="Set Error Payload"
+                doc:description="Builds the normalised ErrorResponse body for auth failures." />
+        </on-error-propagate>
+
+        <!-- Connectivity timeouts / unreachable carrier endpoints -->
+        <on-error-propagate
+            type="HTTP:CONNECTIVITY, HTTP:TIMEOUT"
+            doc:name="Connectivity / Timeout Error"
+            doc:description="Handles network timeouts and carrier API connectivity failures.">
+            <set-variable
+                variableName="httpStatus"
+                value="503"
+                doc:name="Set HTTP Status 503"
+                doc:description="Maps connectivity failures to 503 Service Unavailable." />
+            <set-payload
+                value='#[%dw 2.0 output application/json --- { code: "CARRIER_UNAVAILABLE", message: "A carrier API is temporarily unreachable. Please retry later.", correlationId: correlationId }]'
+                doc:name="Set Error Payload"
+                doc:description="Builds the normalised ErrorResponse body for connectivity failures." />
+        </on-error-propagate>
+
+        <!-- Catch-all for any other unhandled exception -->
+        <on-error-propagate
+            type="ANY"
+            doc:name="Catch-All Error"
+            doc:description="Last-resort handler for any exception not caught by a more specific handler.">
+            <set-variable
+                variableName="httpStatus"
+                value="500"
+                doc:name="Set HTTP Status 500"
+                doc:description="Returns 500 Internal Server Error for all unhandled exceptions." />
+            <set-payload
+                value='#[%dw 2.0 output application/json --- { code: "INTERNAL_ERROR", message: "An unexpected error occurred. Please contact support with the correlation ID.", correlationId: correlationId }]'
+                doc:name="Set Error Payload"
+                doc:description="Builds the normalised ErrorResponse body for unexpected failures." />
+        </on-error-propagate>
+
+    </error-handler>
+
+</mule>
