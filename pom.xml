@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    
+    <groupId>com.company</groupId>
+    <artifactId>universal-shipment-tracking-api</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>mule-application</packaging>
+    
+    <name>Universal Shipment Tracking API</name>
+    <description>
+        Experience Layer API providing a unified interface for tracking shipments
+        across multiple couriers (FedEx, UPS, DHL, USPS). Follows API-led
+        connectivity principles: this application is the Experience API that
+        normalises carrier-specific responses into a single canonical schema.
+    </description>
+    
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- ── Runtime ── -->
+        <app.runtime>4.8.0</app.runtime>
+        <!-- ── Plugin versions ── -->
+        <munit.version>3.2.0</munit.version>
+        <mule.maven.plugin.version>4.10.0</mule.maven.plugin.version>
+    </properties>
+    
+    <dependencies>
+        
+        <!-- ════════════════════════════════════════════
+             Core connectors (free, no paid licence needed)
+             ════════════════════════════════════════════ -->
+        
+        <!-- HTTP Connector — inbound listener + outbound HTTP calls to carrier APIs -->
+        <dependency>
+            <groupId>org.mule.connectors</groupId>
+            <artifactId>mule-http-connector</artifactId>
+            <version>1.10.4</version>
+            <classifier>mule-plugin</classifier>
+        </dependency>
+        
+        <!-- APIkit — generates router + skeleton implementation flows from the OAS spec -->
+        <dependency>
+            <groupId>org.mule.modules</groupId>
+            <artifactId>mule-apikit-module</artifactId>
+            <version>1.12.0</version>
+            <classifier>mule-plugin</classifier>
+        </dependency>
+        
+        <!-- Secure Configuration Properties — encrypts credentials in config files -->
+        <dependency>
+            <groupId>com.mulesoft.modules</groupId>
+            <artifactId>mule-secure-configuration-property-module</artifactId>
+            <version>1.2.5</version>
+            <classifier>mule-plugin</classifier>
+        </dependency>
+        
+        <!-- ════════════════════════════════════════════
+             MUnit — test scope only
+             ════════════════════════════════════════════ -->
+        
+        <!-- MUnit Runner — executes test suites during mvn test -->
+        <dependency>
+            <groupId>com.mulesoft.munit</groupId>
+            <artifactId>munit-runner</artifactId>
+            <version>${munit.version}</version>
+            <classifier>mule-plugin</classifier>
+            <scope>test</scope>
+        </dependency>
+        
+        <!-- MUnit Tools — assertion + mock utilities used inside test suites -->
+        <dependency>
+            <groupId>com.mulesoft.munit</groupId>
+            <artifactId>munit-tools</artifactId>
+            <version>${munit.version}</version>
+            <classifier>mule-plugin</classifier>
+            <scope>test</scope>
+        </dependency>
+        
+    </dependencies>
+    
+    <build>
+        <plugins>
+            
+            <!-- Mule Maven Plugin — packages the application as a .jar Mule app -->
+            <plugin>
+                <groupId>org.mule.tools.maven</groupId>
+                <artifactId>mule-maven-plugin</artifactId>
+                <version>${mule.maven.plugin.version}</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <classifier>mule-application</classifier>
+                </configuration>
+            </plugin>
+            
+            <!-- MUnit Maven Plugin — runs MUnit tests and generates coverage reports -->
+            <plugin>
+                <groupId>com.mulesoft.munit.tools</groupId>
+                <artifactId>munit-maven-plugin</artifactId>
+                <version>${munit.version}</version>
+                <executions>
+                    <execution>
+                        <id>test</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>test</goal>
+                            <goal>coverage-report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <coverage>
+                        <runCoverage>true</runCoverage>
+                        <formats>
+                            <format>html</format>
+                        </formats>
+                    </coverage>
+                </configuration>
+            </plugin>
+            
+        </plugins>
+    </build>
+    
+    <!-- ════════════════════════════════════════════
+         Maven repositories required for Mule artifacts
+         ════════════════════════════════════════════ -->
+    <repositories>
+        <repository>
+            <id>anypoint-exchange-v3</id>
+            <name>Anypoint Exchange V3</name>
+            <url>https://maven.anypoint.mulesoft.com/api/v3/maven</url>
+            <layout>default</layout>
+        </repository>
+        <repository>
+            <id>mulesoft-releases</id>
+            <name>MuleSoft Releases Repository</name>
+            <url>https://repository.mulesoft.org/releases/</url>
+            <layout>default</layout>
+        </repository>
+    </repositories>
+    
+    <pluginRepositories>
+        <pluginRepository>
+            <id>mulesoft-releases</id>
+            <name>MuleSoft Release Repository</name>
+            <url>https://repository.mulesoft.org/releases/</url>
+            <layout>default</layout>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </pluginRepository>
+    </pluginRepositories>
+    
+</project>

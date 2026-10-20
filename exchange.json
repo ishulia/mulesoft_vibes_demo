@@ -1,0 +1,15 @@
+{
+  "assetId": "universal-shipment-tracking-api",
+  "groupId": "${exchangeGroupId}",
+  "version": "1.0.0-SNAPSHOT",
+  "name": "Universal Shipment Tracking API",
+  "description": "Experience Layer API providing a unified interface for tracking shipments across FedEx, UPS, DHL, and USPS.",
+  "classifier": "mule-application",
+  "type": "app",
+  "tags": [
+    "shipment",
+    "tracking",
+    "logistics",
+    "experience-api"
+  ]
+}
