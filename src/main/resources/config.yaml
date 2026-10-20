@@ -1,0 +1,56 @@
+# ══════════════════════════════════════════════════════════════════════
+# Universal Shipment Tracking API — Configuration (DEV / Local)
+#
+# This file contains all environment-specific values for local development.
+# Duplicate this file as config-uat.yaml and config-prod.yaml for other
+# environments and populate with the real credentials for each environment.
+#
+# Property placeholders in Mule XML are resolved from this file via:
+#   <configuration-properties file="config.yaml" />  (global-configs.xml)
+#
+# SECURITY NOTE:
+#   Never commit real API keys or secrets to source control.
+#   Use the Mule Secure Configuration Properties module (with encryption)
+#   for any value that is a credential:
+#     anypoint-cli-v4 util encrypt --algorithm AES --key <your-key> <value>
+#   Replace the plaintext value with "![<encrypted-value>]" and load via
+#   <secure-properties:config> instead of <configuration-properties>.
+# ══════════════════════════════════════════════════════════════════════
+
+# ── HTTP Listener ──────────────────────────────────────────────────────
+http:
+  port: "8081"                          # Inbound listener port
+
+# ── FedEx Tracking REST API ────────────────────────────────────────────
+# Docs: https://developer.fedex.com/api/en-us/catalog/tracking/v1/docs.html
+# Auth: OAuth 2.0 client credentials
+fedex:
+  api:
+    host:         "apis.fedex.com"
+    clientId:     "REPLACE_WITH_FEDEX_CLIENT_ID"
+    clientSecret: "REPLACE_WITH_FEDEX_CLIENT_SECRET"
+
+# ── UPS Tracking REST API ──────────────────────────────────────────────
+# Docs: https://developer.ups.com/api/reference/tracking/
+# Auth: OAuth 2.0 client credentials
+ups:
+  api:
+    host:         "onlinetools.ups.com"
+    clientId:     "REPLACE_WITH_UPS_CLIENT_ID"
+    clientSecret: "REPLACE_WITH_UPS_CLIENT_SECRET"
+
+# ── DHL Shipment Tracking API ──────────────────────────────────────────
+# Docs: https://developer.dhl.com/api-reference/shipment-tracking
+# Auth: API key (DHL-API-Key header)
+dhl:
+  api:
+    host:   "api-eu.dhl.com"
+    apiKey: "REPLACE_WITH_DHL_API_KEY"
+
+# ── USPS Web Tools API ─────────────────────────────────────────────────
+# Docs: https://www.usps.com/business/web-tools-apis/track-and-confirm-api.htm
+# Auth: UserId query parameter
+usps:
+  api:
+    host:   "secure.shippingapis.com"
+    userId: "REPLACE_WITH_USPS_USER_ID"

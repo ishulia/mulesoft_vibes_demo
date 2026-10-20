@@ -1,0 +1,37 @@
+# ══════════════════════════════════════════════════════════════════════
+# Universal Shipment Tracking API — Configuration (PROD)
+#
+# Activated by passing -Dmule.env=prod at runtime, combined with a
+# <configuration-properties file="config-${mule.env}.yaml" /> element
+# in global-configs.xml (add when multi-environment switching is needed).
+#
+# IMPORTANT: In production, all credential values MUST be encrypted.
+# Use the Mule Secure Configuration Properties module:
+#   anypoint-cli-v4 util encrypt --algorithm AES --key <your-key> <value>
+# Store the encryption key as a secure CloudHub property (never in code).
+# ══════════════════════════════════════════════════════════════════════
+
+http:
+  port: "8081"
+
+fedex:
+  api:
+    host:         "apis.fedex.com"
+    clientId:     "REPLACE_WITH_PROD_FEDEX_CLIENT_ID"
+    clientSecret: "REPLACE_WITH_PROD_FEDEX_CLIENT_SECRET"
+
+ups:
+  api:
+    host:         "onlinetools.ups.com"
+    clientId:     "REPLACE_WITH_PROD_UPS_CLIENT_ID"
+    clientSecret: "REPLACE_WITH_PROD_UPS_CLIENT_SECRET"
+
+dhl:
+  api:
+    host:   "api-eu.dhl.com"
+    apiKey: "REPLACE_WITH_PROD_DHL_API_KEY"
+
+usps:
+  api:
+    host:   "secure.shippingapis.com"
+    userId: "REPLACE_WITH_PROD_USPS_USER_ID"

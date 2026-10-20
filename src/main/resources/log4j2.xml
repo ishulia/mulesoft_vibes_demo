@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Log4j2 configuration for the Universal Shipment Tracking API.
+
+    Log levels per package:
+      - com.mulesoft / org.mule : WARN   (suppress verbose Mule framework noise)
+      - Application flows        : INFO   (catch all business-relevant events)
+      - Carrier adapters         : INFO   (log every carrier API call and response)
+
+    To increase verbosity for local debugging, change the root level to DEBUG
+    or set a specific logger entry to DEBUG without modifying the others.
+-->
+<Configuration status="WARN" monitorInterval="60">
+
+    <Appenders>
+
+        <!-- Console appender — used in all environments for container log collection -->
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="%-5p %d{HH:mm:ss.SSS} [%t] [%X{correlationId}] %c{1} - %m%n" />
+        </Console>
+
+    </Appenders>
+
+    <Loggers>
+
+        <!-- ── Mule framework — keep at WARN to reduce noise ── -->
+        <AsyncLogger name="org.mule.runtime" level="WARN" />
+        <AsyncLogger name="com.mulesoft.mule" level="WARN" />
+        <AsyncLogger name="org.mule.service" level="WARN" />
+
+        <!-- ── APIkit — INFO so validation errors are visible ── -->
+        <AsyncLogger name="org.mule.module.apikit" level="INFO" />
+
+        <!-- ── HTTP connector — WARN in normal operation; set to DEBUG to trace
+             raw request/response headers for carrier API troubleshooting ── -->
+        <AsyncLogger name="org.mule.extension.http" level="WARN" />
+
+        <!-- ── Application loggers — all flows and adapters ── -->
+        <!-- Main API flow -->
+        <AsyncLogger name="shipment-tracking-api" level="INFO" />
+        <!-- Carrier adapters -->
+        <AsyncLogger name="fedex-adapter"  level="INFO" />
+        <AsyncLogger name="ups-adapter"    level="INFO" />
+        <AsyncLogger name="dhl-adapter"    level="INFO" />
+        <AsyncLogger name="usps-adapter"   level="INFO" />
+
+        <!-- ── Root fallback ── -->
+        <AsyncRoot level="INFO">
+            <AppenderRef ref="Console" />
+        </AsyncRoot>
+
+    </Loggers>
+
+</Configuration>
