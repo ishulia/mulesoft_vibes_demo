@@ -2,6 +2,7 @@
 # Java defaults (https://github.com/github/gitignore/blob/master/Java.gitignore) #
 # ------------------------------------------------------------------------------ #
 *.class
+*.jks
 
 # Package Files #
 *.jar
