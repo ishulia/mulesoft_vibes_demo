@@ -1,0 +1,11 @@
+{
+  "main": "users-api-spec.yaml",
+  "name": "users api spec",
+  "classifier": "oas",
+  "organizationId": "317a9181-de78-4373-8453-20725e9c2784",
+  "descriptorVersion": "1.0.0",
+  "groupId": "317a9181-de78-4373-8453-20725e9c2784",
+  "assetId": "users-api-spec",
+  "version": "1.0.0",
+  "tags": []
+}
