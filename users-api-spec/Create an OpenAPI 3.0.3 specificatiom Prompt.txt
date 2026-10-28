@@ -12,7 +12,7 @@ Endpoints:
    Returns 200 { data: [User], page: { total, limit, skip } } (reshaped from DummyJSON's { users, total, skip, limit }).
 2. GET /users/{userId} -> DummyJSON GET /users/{id}. Returns 200 User, or 404.
 3. POST /users -> DummyJSON POST /users/add. Body UserInput. Returns 201 User including the new id (DummyJSON does not persist it).
-4. PUT /users/{userId} -> DummyJSON PUT /users/{id}. Partial update: body is UserUpdate (same properties as UserInput, none required, minProperties: 1). Returns 200 User, or 404.
+4. PATCH /users/{userId} -> DummyJSON PATCH /users/{id}. Partial update: body is UserUpdate (same properties as UserInput, none required, minProperties: 1). Returns 200 User, or 404.
 5. DELETE /users/{userId} -> DummyJSON DELETE /users/{id}. Returns 200 { id: integer, deleted: true, deletedOn: string (date-time) }, mapped from DummyJSON's isDeleted/deletedOn. Or 404.
 
 userId path param: integer, minimum 1, reusable component.
