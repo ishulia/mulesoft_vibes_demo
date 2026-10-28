@@ -1,0 +1,31 @@
+Create an OpenAPI 3.0.3 specification in YAML for a "Users API" (version 1.0.0) that proxies the DummyJSON users API (https://dummyjson.com). Include operationIds, a "Users" tag, reusable components (schemas, parameters, responses), and request/response examples for every operation.
+
+Security: all operations require client credentials enforced by an API Manager Client ID Enforcement policy. Define a securitySchemes entry using client_id and client_secret request headers and apply it globally.
+
+Endpoints:
+1. GET /users -> DummyJSON GET /users.
+   Query params:
+   - limit: integer, min 1, max 100, default 30 (values outside 1-100 return 400; 0 is never forwarded because DummyJSON treats it as "all")
+   - skip: integer, min 0, default 0
+   - sortBy: enum [id, firstName, lastName, email, username, age, birthDate]
+   - order: enum [asc, desc], default asc
+   Returns 200 { data: [User], page: { total, limit, skip } } (reshaped from DummyJSON's { users, total, skip, limit }).
+2. GET /users/{userId} -> DummyJSON GET /users/{id}. Returns 200 User, or 404.
+3. POST /users -> DummyJSON POST /users/add. Body UserInput. Returns 201 User including the new id (DummyJSON does not persist it).
+4. PUT /users/{userId} -> DummyJSON PUT /users/{id}. Partial update: body is UserUpdate (same properties as UserInput, none required, minProperties: 1). Returns 200 User, or 404.
+5. DELETE /users/{userId} -> DummyJSON DELETE /users/{id}. Returns 200 { id: integer, deleted: true, deletedOn: string (date-time) }, mapped from DummyJSON's isDeleted/deletedOn. Or 404.
+
+userId path param: integer, minimum 1, reusable component.
+
+Schemas:
+- UserInput: required firstName, lastName, email (format email), age (integer, min 0); optional phone, username, gender (enum male, female), birthDate (string, YYYY-MM-DD), role (enum admin, moderator, user). additionalProperties: false.
+- User (response whitelist; all other DummyJSON fields are dropped in DataWeave): id, firstName, lastName, email, phone, username, age, gender, birthDate (string, normalized to YYYY-MM-DD), role, image (uri), address { address, city, state, postalCode, country }, company { name, department, title }.
+- Error: { code: string, message: string, correlationId: string }, with code enum [BAD_REQUEST, UNAUTHORIZED, USER_NOT_FOUND, TOO_MANY_REQUESTS, BACKEND_ERROR, BACKEND_TIMEOUT].
+
+Errors (reusable responses, all using the Error schema):
+- 400 BAD_REQUEST: APIkit validation failure (invalid userId, missing/invalid field, empty update body, limit out of range). All operations with params or body.
+- 401 UNAUTHORIZED: missing/invalid client credentials, returned by the policy. All operations.
+- 404 USER_NOT_FOUND: DummyJSON returned 404. Operations with {userId}.
+- 429 TOO_MANY_REQUESTS: rate limit policy (include it). All operations.
+- 502 BACKEND_ERROR: DummyJSON returned 5xx or an unparseable response. All operations.
+- 504 BACKEND_TIMEOUT: DummyJSON did not respond within dummyjson.timeout (default 10s). All operations.
