@@ -129,3 +129,6 @@ One entry per task done with Vibes. This is the material for the talk: where Vib
 | Task | Who | Prompt (short) | What Vibes got right | What had to be fixed | Time saved or lost |
 |---|---|---|---|---|---|
 | T0.3 | I | Write workspace rules from the definition | Allowlist, sensitive fields, error body and codes, logging, simulated writes | Wrong `GET /users` shape, unknown paths mapped to `USER_NOT_FOUND`, all non-2xx mapped to 502, per-flow error handlers, invented file layout, kebab-case renaming of APIkit flows, `SECURE_KEY` instead of `mule.key`, `deletedOn` missing, `birthDate` as ISO-8601, missing query params and request bodies | Fast draft, but a full review against the plan was needed |
+| T1.1 | A | Create the spec project with Design an API: name users-api-spec, REST, OAS 3.0 YAML | Exchange file definition, project structure | Nothing, this is a simple task | Fast project draft, no addtional review needed |
+| T1.2 | A | Generate the spec with Vibes from definition |  |  |  |
+
