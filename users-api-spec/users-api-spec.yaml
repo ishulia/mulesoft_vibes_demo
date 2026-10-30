@@ -12,6 +12,10 @@ info:
     **Simulated writes:** POST, PATCH, and DELETE are simulated by DummyJSON.
     No data is persisted. A GET after a write returns the original record.
 
+externalDocs:
+  description: DummyJSON Users API documentation
+  url: https://dummyjson.com/docs/users
+
 servers:
   - url: /api/v1
 
@@ -42,8 +46,8 @@ components:
         Client ID Enforcement policy; not checked inside the Mule application.
 
   parameters:
-    userId:
-      name: userId
+    user-id:
+      name: user-id
       in: path
       required: true
       description: Numeric user identifier. Must be an integer greater than or equal to 1.
@@ -112,34 +116,46 @@ components:
 
     Address:
       type: object
+      description: Postal address associated with a user.
+      additionalProperties: false
       properties:
         address:
           type: string
+          description: Street address line.
           example: "626 Main Street"
         city:
           type: string
+          description: City name.
           example: "Phoenix"
         state:
           type: string
+          description: State or province name.
           example: "Mississippi"
         postalCode:
           type: string
+          description: Postal or ZIP code.
           example: "29112"
         country:
           type: string
+          description: Country name.
           example: "United States"
 
     Company:
       type: object
+      description: Employer information associated with a user.
+      additionalProperties: false
       properties:
         name:
           type: string
+          description: Company name.
           example: "Dooley, Kozey and Cronin"
         department:
           type: string
+          description: Department within the company.
           example: "Engineering"
         title:
           type: string
+          description: Job title held by the user.
           example: "Sales Manager"
 
     User:
@@ -148,37 +164,47 @@ components:
         User record after the field whitelist is applied. Sensitive fields
         (password, ssn, ein, bank, crypto, ip, macAddress) and any nulls,
         empty strings, or empty nested objects are dropped by DataWeave.
+      additionalProperties: false
       properties:
         id:
           type: integer
+          description: Unique numeric user identifier.
           example: 1
         firstName:
           type: string
+          description: User's first name.
           example: "Emily"
         lastName:
           type: string
+          description: User's last name.
           example: "Johnson"
         email:
           type: string
           format: email
+          description: User's email address.
           example: "emily.johnson@x.dummyjson.com"
         phone:
           type: string
+          description: User's phone number in international format.
           example: "+81 965-431-3024"
         username:
           type: string
+          description: Unique username assigned to the user.
           example: "emilys"
         age:
           type: integer
+          description: User's age in years.
           example: 29
         gender:
           type: string
+          description: User's gender.
           enum:
             - male
             - female
           example: "female"
         birthDate:
           type: string
+          format: date
           description: >
             Date of birth in YYYY-MM-DD format. DummyJSON returns unpadded
             values (e.g. 1996-5-30); the Mule app normalizes them to
@@ -187,6 +213,7 @@ components:
           example: "1996-05-30"
         role:
           type: string
+          description: User's platform role.
           enum:
             - admin
             - moderator
@@ -195,11 +222,16 @@ components:
         image:
           type: string
           format: uri
+          description: URL to the user's profile image.
           example: "https://dummyjson.com/icon/emilys/128"
         address:
-          $ref: "#/components/schemas/Address"
+          allOf:
+            - $ref: "#/components/schemas/Address"
+          description: User's home address.
         company:
-          $ref: "#/components/schemas/Company"
+          allOf:
+            - $ref: "#/components/schemas/Company"
+          description: User's employer information.
 
     UserInput:
       type: object
@@ -213,37 +245,46 @@ components:
       properties:
         firstName:
           type: string
+          description: User's first name.
           example: "Ann"
         lastName:
           type: string
+          description: User's last name.
           example: "Lee"
         email:
           type: string
           format: email
+          description: User's email address.
           example: "ann@example.com"
         age:
           type: integer
           minimum: 0
+          description: User's age in years.
           example: 30
         phone:
           type: string
+          description: User's phone number in international format.
           example: "+1 555-123-4567"
         username:
           type: string
+          description: Unique username for the new user.
           example: "annlee"
         gender:
           type: string
+          description: User's gender.
           enum:
             - male
             - female
           example: "female"
         birthDate:
           type: string
+          format: date
           description: Date of birth in YYYY-MM-DD format.
           pattern: "^\\d{4}-\\d{2}-\\d{2}$"
           example: "1994-07-15"
         role:
           type: string
+          description: User's platform role.
           enum:
             - admin
             - moderator
@@ -261,56 +302,69 @@ components:
       properties:
         firstName:
           type: string
+          description: User's first name.
           example: "Ann"
         lastName:
           type: string
+          description: User's last name.
           example: "Smith"
         email:
           type: string
           format: email
+          description: User's email address.
           example: "ann.smith@example.com"
         age:
           type: integer
           minimum: 0
+          description: User's age in years.
           example: 31
         phone:
           type: string
+          description: User's phone number in international format.
           example: "+1 555-987-6543"
         username:
           type: string
+          description: Unique username of the user.
           example: "annsmith"
         gender:
           type: string
+          description: User's gender.
           enum:
             - male
             - female
           example: "female"
         birthDate:
           type: string
+          format: date
           description: Date of birth in YYYY-MM-DD format.
           pattern: "^\\d{4}-\\d{2}-\\d{2}$"
           example: "1994-07-15"
         role:
           type: string
+          description: User's platform role.
           enum:
             - admin
             - moderator
             - user
           example: "moderator"
 
-    UsersListResponse:
+    UsersList:
       type: object
       description: Paginated list of users. Reshaped from DummyJSON's { users, total, skip, limit }.
+      additionalProperties: false
       required:
         - data
         - page
       properties:
         data:
           type: array
+          description: Array of user objects for the current page.
           items:
             $ref: "#/components/schemas/User"
         page:
           type: object
+          description: Pagination metadata for the current result page.
+          additionalProperties: false
           required:
             - total
             - limit
@@ -329,11 +383,12 @@ components:
               description: Number of users skipped before this page.
               example: 0
 
-    DeleteResponse:
+    DeleteAck:
       type: object
       description: >
         Deletion acknowledgement. Mapped from DummyJSON's isDeleted / deletedOn
         fields. DummyJSON simulates deletion; no record is removed.
+      additionalProperties: false
       required:
         - id
         - deleted
@@ -358,6 +413,7 @@ components:
     Error:
       type: object
       description: Standard error body returned for all non-2xx responses.
+      additionalProperties: false
       required:
         - code
         - message
@@ -395,9 +451,15 @@ components:
 
     BadRequest:
       description: >
-        Bad request. Caused by APIkit validation failure: invalid userId
+        Bad request. Caused by APIkit validation failure: invalid user-id
         (non-integer or less than 1), missing or invalid request body field,
         empty PATCH body, limit out of range, or malformed JSON.
+      headers:
+        Content-Type:
+          description: Media type of the response body.
+          schema:
+            type: string
+            example: application/json
       content:
         application/json:
           schema:
@@ -415,6 +477,12 @@ components:
         Unauthorized. The client_id or client_secret header is missing or
         invalid. This response is produced by the API Manager Client ID
         Enforcement policy before the request reaches the Mule flow.
+      headers:
+        Content-Type:
+          description: Media type of the response body.
+          schema:
+            type: string
+            example: application/json
       content:
         application/json:
           schema:
@@ -431,6 +499,12 @@ components:
       description: >
         Not found. The requested path does not exist in the API
         (APIkit APIKIT:NOT_FOUND). No user lookup was attempted.
+      headers:
+        Content-Type:
+          description: Media type of the response body.
+          schema:
+            type: string
+            example: application/json
       content:
         application/json:
           schema:
@@ -447,7 +521,13 @@ components:
       description: >
         Not found. Either the requested path does not exist in the API
         (APIKIT:NOT_FOUND, code NOT_FOUND) or DummyJSON returned 404 for the
-        given userId (HTTP:NOT_FOUND, code USER_NOT_FOUND).
+        given user-id (HTTP:NOT_FOUND, code USER_NOT_FOUND).
+      headers:
+        Content-Type:
+          description: Media type of the response body.
+          schema:
+            type: string
+            example: application/json
       content:
         application/json:
           schema:
@@ -470,6 +550,12 @@ components:
       description: >
         Method not allowed. The path exists but the HTTP method is not defined
         for it (APIkit APIKIT:METHOD_NOT_ALLOWED).
+      headers:
+        Content-Type:
+          description: Media type of the response body.
+          schema:
+            type: string
+            example: application/json
       content:
         application/json:
           schema:
@@ -486,6 +572,12 @@ components:
       description: >
         Too many requests. The rate-limiting policy applied in API Manager has
         been exceeded for this client.
+      headers:
+        Content-Type:
+          description: Media type of the response body.
+          schema:
+            type: string
+            example: application/json
       content:
         application/json:
           schema:
@@ -503,6 +595,12 @@ components:
         Bad gateway. DummyJSON returned an HTTP 5xx response. Mapped from
         HTTP:INTERNAL_SERVER_ERROR, HTTP:BAD_GATEWAY, or
         HTTP:SERVICE_UNAVAILABLE.
+      headers:
+        Content-Type:
+          description: Media type of the response body.
+          schema:
+            type: string
+            example: application/json
       content:
         application/json:
           schema:
@@ -519,6 +617,12 @@ components:
       description: >
         Gateway timeout. DummyJSON did not respond within the configured
         dummyjson.timeout (default 10 000 ms). Mapped from HTTP:TIMEOUT.
+      headers:
+        Content-Type:
+          description: Media type of the response body.
+          schema:
+            type: string
+            example: application/json
       content:
         application/json:
           schema:
@@ -535,6 +639,12 @@ components:
       description: >
         Internal server error. An unexpected error occurred that does not
         map to any other defined error type.
+      headers:
+        Content-Type:
+          description: Media type of the response body.
+          schema:
+            type: string
+            example: application/json
       content:
         application/json:
           schema:
@@ -568,10 +678,16 @@ paths:
       responses:
         "200":
           description: Paginated user list.
+          headers:
+            Content-Type:
+              description: Media type of the response body.
+              schema:
+                type: string
+                example: application/json
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UsersListResponse"
+                $ref: "#/components/schemas/UsersList"
               examples:
                 success:
                   summary: First page, default limit of 30
@@ -683,6 +799,12 @@ paths:
             User created. DummyJSON always returns id 209. Fields not sent in
             the request body are returned as empty strings by DummyJSON and
             dropped by the DataWeave whitelist.
+          headers:
+            Content-Type:
+              description: Media type of the response body.
+              schema:
+                type: string
+                example: application/json
           content:
             application/json:
               schema:
@@ -714,9 +836,9 @@ paths:
         "504":
           $ref: "#/components/responses/BackendTimeout"
 
-  /users/{userId}:
+  /users/{user-id}:
     parameters:
-      - $ref: "#/components/parameters/userId"
+      - $ref: "#/components/parameters/user-id"
 
     get:
       tags:
@@ -729,6 +851,12 @@ paths:
       responses:
         "200":
           description: User found.
+          headers:
+            Content-Type:
+              description: Media type of the response body.
+              schema:
+                type: string
+                example: application/json
           content:
             application/json:
               schema:
@@ -805,6 +933,12 @@ paths:
       responses:
         "200":
           description: User updated. DummyJSON returns the merged user record.
+          headers:
+            Content-Type:
+              description: Media type of the response body.
+              schema:
+                type: string
+                example: application/json
           content:
             application/json:
               schema:
@@ -867,10 +1001,16 @@ paths:
           description: >
             Deletion acknowledged. DummyJSON simulates the deletion; the
             original record is unchanged.
+          headers:
+            Content-Type:
+              description: Media type of the response body.
+              schema:
+                type: string
+                example: application/json
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/DeleteResponse"
+                $ref: "#/components/schemas/DeleteAck"
               examples:
                 deleted:
                   summary: Deletion confirmation for user id 1
