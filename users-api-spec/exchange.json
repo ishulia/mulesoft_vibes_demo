@@ -1,7 +1,8 @@
 {
   "main": "users-api-spec.yaml",
-  "name": "users api spec",
+  "name": "Users API Spec",
   "classifier": "oas",
+  "apiVersion": "v1",
   "organizationId": "317a9181-de78-4373-8453-20725e9c2784",
   "descriptorVersion": "1.0.0",
   "tags": [],
