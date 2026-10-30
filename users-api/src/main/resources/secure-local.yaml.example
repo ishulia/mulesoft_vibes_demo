@@ -1,0 +1,10 @@
+# Example secure properties file for local development.
+# Copy this file to secure-local.yaml and replace placeholders with real encrypted values.
+# To encrypt a value, run:
+#   java -cp secure-properties-tool.jar com.mulesoft.tools.SecurePropertiesTool string encrypt AES CBC <your-key> <your-value>
+# Then wrap the output in ![...] as shown below.
+# DO NOT commit secure-local.yaml — it is gitignored.
+anypoint:
+  platform:
+    client_id: "![<encrypted-client-id>]"
+    client_secret: "![<encrypted-client-secret>]"
