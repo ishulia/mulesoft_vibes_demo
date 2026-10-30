@@ -51,6 +51,11 @@ velocity.log
 # ------------------------------------------------------------------------------ #
 .tooling-project
 
+# ------------------------------------------------------------------------------ #
+# Secure Properties — never commit real encrypted secrets for local env           #
+# ------------------------------------------------------------------------------ #
+users-api/src/main/resources/secure-local.yaml
+
 # ACB DataWeave Playground — IDE-generated preview inputs, not project artifacts
 src/test/resources/embedded-dw_*/
 .vscode/launch.json

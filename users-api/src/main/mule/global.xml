@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway"
+      xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd
+        http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd">
+
+    <!-- Configuration Properties -->
+    <configuration-properties doc:name="Configuration Properties" file="config-${mule.env}.yaml" />
+
+    <!-- Secure Configuration Properties -->
+    <secure-properties:config name="Secure_Properties_Config"
+        file="secure-${mule.env}.yaml"
+        key="${mule.key}"
+        doc:name="Secure Properties Config">
+        <secure-properties:encrypt algorithm="AES" mode="CBC" />
+    </secure-properties:config>
+
+    <!-- HTTP Listener Config -->
+    <!-- host 0.0.0.0 binds all interfaces, required on CloudHub 2.0 -->
+    <http:listener-config name="HTTP_Listener_Config" doc:name="HTTP Listener Config">
+        <http:listener-connection
+            host="0.0.0.0"
+            port="${http.port}" />
+    </http:listener-config>
+
+    <!-- HTTP Request Config for DummyJSON -->
+    <http:request-config name="DummyJSON_Request_Config" doc:name="DummyJSON Request Config"
+        responseTimeout="${dummyjson.timeout}">
+        <http:request-connection
+            host="${dummyjson.host}"
+            port="${dummyjson.port}"
+            protocol="HTTPS" />
+    </http:request-config>
+
+    <!-- API Autodiscovery -->
+    <api-gateway:autodiscovery
+        apiId="${api.id}"
+        flowRef="users-api-main"
+        doc:name="Autodiscovery" />
+
+</mule>

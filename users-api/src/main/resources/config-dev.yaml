@@ -1,0 +1,10 @@
+http:
+  port: 8081
+
+dummyjson:
+  host: dummyjson.com
+  port: 443
+  timeout: 10000
+
+api:
+  id: "" # Set per environment – replace with the API instance ID from API Manager
