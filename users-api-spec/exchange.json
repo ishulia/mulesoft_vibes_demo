@@ -4,8 +4,18 @@
   "classifier": "oas",
   "organizationId": "317a9181-de78-4373-8453-20725e9c2784",
   "descriptorVersion": "1.0.0",
+  "tags": [],
   "groupId": "317a9181-de78-4373-8453-20725e9c2784",
   "assetId": "users-api-spec",
   "version": "1.0.0",
-  "tags": []
+  "dependencies": [
+    {
+      "groupId": "68ef9520-24e9-4cf2-b2f5-620025690913",
+      "assetId": "anypoint-best-practices",
+      "version": "1.7.0",
+      "scope": "validation",
+      "classifier": "ruleset",
+      "packaging": "zip"
+    }
+  ]
 }
