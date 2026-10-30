@@ -20,12 +20,17 @@ userId path param: integer, minimum 1, reusable component.
 Schemas:
 - UserInput: required firstName, lastName, email (format email), age (integer, min 0); optional phone, username, gender (enum male, female), birthDate (string, YYYY-MM-DD), role (enum admin, moderator, user). additionalProperties: false.
 - User (response whitelist; all other DummyJSON fields are dropped in DataWeave): id, firstName, lastName, email, phone, username, age, gender, birthDate (string, normalized to YYYY-MM-DD), role, image (uri), address { address, city, state, postalCode, country }, company { name, department, title }.
-- Error: { code: string, message: string, correlationId: string }, with code enum [BAD_REQUEST, UNAUTHORIZED, USER_NOT_FOUND, TOO_MANY_REQUESTS, BACKEND_ERROR, BACKEND_TIMEOUT].
+- Error: { code: string, message: string, correlationId: string }, with code enum [BAD_REQUEST, UNAUTHORIZED, NOT_FOUND, USER_NOT_FOUND, METHOD_NOT_ALLOWED, TOO_MANY_REQUESTS, BACKEND_ERROR, BACKEND_TIMEOUT, INTERNAL_ERROR].
 
 Errors (reusable responses, all using the Error schema):
 - 400 BAD_REQUEST: APIkit validation failure (invalid userId, missing/invalid field, empty update body, limit out of range). All operations with params or body.
 - 401 UNAUTHORIZED: missing/invalid client credentials, returned by the policy. All operations.
-- 404 USER_NOT_FOUND: DummyJSON returned 404. Operations with {userId}.
+- 404 (OpenAPI allows only one response per status code per operation, so define two reusable 404 responses, both using the Error schema):
+  - NOT_FOUND: one example, code NOT_FOUND (APIkit: path does not exist / unknown path). Used by GET /users and POST /users.
+  - USER_NOT_FOUND: one 404 response with two named examples: "notFound" (code NOT_FOUND, unknown path) and "userNotFound" (code USER_NOT_FOUND, DummyJSON returned 404). Used by GET, PATCH and DELETE /users/{userId}.
+  Never declare two separate 404 entries on the same operation.
+- 405 METHOD_NOT_ALLOWED: APIkit validation for method not allowed. All operations.
 - 429 TOO_MANY_REQUESTS: rate limit policy (include it). All operations.
-- 502 BACKEND_ERROR: DummyJSON returned 5xx or an unparseable response. All operations.
+- 502 BACKEND_ERROR: HTTP:INTERNAL_SERVER_ERROR, HTTP:BAD_GATEWAY, HTTP:SERVICE_UNAVAILABLE (DummyJSON returned 5xx). All operations.
 - 504 BACKEND_TIMEOUT: DummyJSON did not respond within dummyjson.timeout (default 10s). All operations.
+- 500 INTERNAL_ERROR: Any other error.
