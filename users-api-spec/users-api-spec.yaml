@@ -1,5 +1,896 @@
-openapi: 3.0.0
+openapi: 3.0.3
 info:
+  title: Users API
   version: 1.0.0
-  title: users api spec
-paths: {}
+  description: >
+    REST API that proxies DummyJSON users (https://dummyjson.com/docs/users).
+    Provides a stable contract, removes sensitive fields, returns consistent
+    errors, and enforces client-ID / client-secret access control via an
+    Anypoint API Manager Client ID Enforcement policy.
+
+
+    **Simulated writes:** POST, PATCH, and DELETE are simulated by DummyJSON.
+    No data is persisted. A GET after a write returns the original record.
+
+servers:
+  - url: /api/v1
+
+tags:
+  - name: Users
+    description: User management operations
+
+security:
+  - clientId: []
+    clientSecret: []
+
+components:
+
+  securitySchemes:
+    clientId:
+      type: apiKey
+      in: header
+      name: client_id
+      description: >
+        Client ID issued by Anypoint Exchange. Validated by the API Manager
+        Client ID Enforcement policy; not checked inside the Mule application.
+    clientSecret:
+      type: apiKey
+      in: header
+      name: client_secret
+      description: >
+        Client secret issued by Anypoint Exchange. Validated by the API Manager
+        Client ID Enforcement policy; not checked inside the Mule application.
+
+  parameters:
+    userId:
+      name: userId
+      in: path
+      required: true
+      description: Numeric user identifier. Must be an integer greater than or equal to 1.
+      schema:
+        type: integer
+        minimum: 1
+      example: 1
+
+    limit:
+      name: limit
+      in: query
+      required: false
+      description: >
+        Maximum number of users to return per page. Must be between 1 and 100
+        inclusive. Values outside this range are rejected with 400 by APIkit.
+        The value 0 is never forwarded to DummyJSON.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 30
+      example: 30
+
+    skip:
+      name: skip
+      in: query
+      required: false
+      description: Number of users to skip (zero-based offset for pagination).
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+      example: 0
+
+    sortBy:
+      name: sortBy
+      in: query
+      required: false
+      description: Field to sort the user list by.
+      schema:
+        type: string
+        enum:
+          - id
+          - firstName
+          - lastName
+          - email
+          - username
+          - age
+          - birthDate
+      example: lastName
+
+    order:
+      name: order
+      in: query
+      required: false
+      description: Sort direction for the user list.
+      schema:
+        type: string
+        enum:
+          - asc
+          - desc
+        default: asc
+      example: asc
+
+  schemas:
+
+    Address:
+      type: object
+      properties:
+        address:
+          type: string
+          example: "626 Main Street"
+        city:
+          type: string
+          example: "Phoenix"
+        state:
+          type: string
+          example: "Mississippi"
+        postalCode:
+          type: string
+          example: "29112"
+        country:
+          type: string
+          example: "United States"
+
+    Company:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "Dooley, Kozey and Cronin"
+        department:
+          type: string
+          example: "Engineering"
+        title:
+          type: string
+          example: "Sales Manager"
+
+    User:
+      type: object
+      description: >
+        User record after the field whitelist is applied. Sensitive fields
+        (password, ssn, ein, bank, crypto, ip, macAddress) and any nulls,
+        empty strings, or empty nested objects are dropped by DataWeave.
+      properties:
+        id:
+          type: integer
+          example: 1
+        firstName:
+          type: string
+          example: "Emily"
+        lastName:
+          type: string
+          example: "Johnson"
+        email:
+          type: string
+          format: email
+          example: "emily.johnson@x.dummyjson.com"
+        phone:
+          type: string
+          example: "+81 965-431-3024"
+        username:
+          type: string
+          example: "emilys"
+        age:
+          type: integer
+          example: 29
+        gender:
+          type: string
+          enum:
+            - male
+            - female
+          example: "female"
+        birthDate:
+          type: string
+          description: >
+            Date of birth in YYYY-MM-DD format. DummyJSON returns unpadded
+            values (e.g. 1996-5-30); the Mule app normalizes them to
+            1996-05-30.
+          pattern: "^\\d{4}-\\d{2}-\\d{2}$"
+          example: "1996-05-30"
+        role:
+          type: string
+          enum:
+            - admin
+            - moderator
+            - user
+          example: "admin"
+        image:
+          type: string
+          format: uri
+          example: "https://dummyjson.com/icon/emilys/128"
+        address:
+          $ref: "#/components/schemas/Address"
+        company:
+          $ref: "#/components/schemas/Company"
+
+    UserInput:
+      type: object
+      description: Request body for creating a new user.
+      required:
+        - firstName
+        - lastName
+        - email
+        - age
+      additionalProperties: false
+      properties:
+        firstName:
+          type: string
+          example: "Ann"
+        lastName:
+          type: string
+          example: "Lee"
+        email:
+          type: string
+          format: email
+          example: "ann@example.com"
+        age:
+          type: integer
+          minimum: 0
+          example: 30
+        phone:
+          type: string
+          example: "+1 555-123-4567"
+        username:
+          type: string
+          example: "annlee"
+        gender:
+          type: string
+          enum:
+            - male
+            - female
+          example: "female"
+        birthDate:
+          type: string
+          description: Date of birth in YYYY-MM-DD format.
+          pattern: "^\\d{4}-\\d{2}-\\d{2}$"
+          example: "1994-07-15"
+        role:
+          type: string
+          enum:
+            - admin
+            - moderator
+            - user
+          example: "user"
+
+    UserUpdate:
+      type: object
+      description: >
+        Request body for partially updating a user. Accepts the same fields as
+        UserInput but none are required. At least one field must be present
+        (minProperties: 1); an empty body is rejected with 400.
+      minProperties: 1
+      additionalProperties: false
+      properties:
+        firstName:
+          type: string
+          example: "Ann"
+        lastName:
+          type: string
+          example: "Smith"
+        email:
+          type: string
+          format: email
+          example: "ann.smith@example.com"
+        age:
+          type: integer
+          minimum: 0
+          example: 31
+        phone:
+          type: string
+          example: "+1 555-987-6543"
+        username:
+          type: string
+          example: "annsmith"
+        gender:
+          type: string
+          enum:
+            - male
+            - female
+          example: "female"
+        birthDate:
+          type: string
+          description: Date of birth in YYYY-MM-DD format.
+          pattern: "^\\d{4}-\\d{2}-\\d{2}$"
+          example: "1994-07-15"
+        role:
+          type: string
+          enum:
+            - admin
+            - moderator
+            - user
+          example: "moderator"
+
+    UsersListResponse:
+      type: object
+      description: Paginated list of users. Reshaped from DummyJSON's { users, total, skip, limit }.
+      required:
+        - data
+        - page
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/User"
+        page:
+          type: object
+          required:
+            - total
+            - limit
+            - skip
+          properties:
+            total:
+              type: integer
+              description: Total number of users available in DummyJSON.
+              example: 208
+            limit:
+              type: integer
+              description: Maximum users returned in this response.
+              example: 30
+            skip:
+              type: integer
+              description: Number of users skipped before this page.
+              example: 0
+
+    DeleteResponse:
+      type: object
+      description: >
+        Deletion acknowledgement. Mapped from DummyJSON's isDeleted / deletedOn
+        fields. DummyJSON simulates deletion; no record is removed.
+      required:
+        - id
+        - deleted
+        - deletedOn
+      properties:
+        id:
+          type: integer
+          description: ID of the user whose deletion was acknowledged.
+          example: 1
+        deleted:
+          type: boolean
+          enum:
+            - true
+          description: Always true when deletion is acknowledged.
+          example: true
+        deletedOn:
+          type: string
+          format: date-time
+          description: Timestamp when the deletion was acknowledged by DummyJSON.
+          example: "2026-10-29T16:15:04.879Z"
+
+    Error:
+      type: object
+      description: Standard error body returned for all non-2xx responses.
+      required:
+        - code
+        - message
+        - correlationId
+      properties:
+        code:
+          type: string
+          description: Machine-readable error code.
+          enum:
+            - BAD_REQUEST
+            - UNAUTHORIZED
+            - NOT_FOUND
+            - USER_NOT_FOUND
+            - METHOD_NOT_ALLOWED
+            - TOO_MANY_REQUESTS
+            - BACKEND_ERROR
+            - BACKEND_TIMEOUT
+            - INTERNAL_ERROR
+          example: "BAD_REQUEST"
+        message:
+          type: string
+          description: >
+            Human-readable description of the error. Never contains stack
+            traces, class names, or raw backend response bodies.
+          example: "Request validation failed."
+        correlationId:
+          type: string
+          description: >
+            Correlation ID for distributed tracing. Taken from the
+            x-correlation-id request header, or generated by Mule if that
+            header is absent.
+          example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+
+  responses:
+
+    BadRequest:
+      description: >
+        Bad request. Caused by APIkit validation failure: invalid userId
+        (non-integer or less than 1), missing or invalid request body field,
+        empty PATCH body, limit out of range, or malformed JSON.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            badRequest:
+              summary: Missing required field
+              value:
+                code: "BAD_REQUEST"
+                message: "Request validation failed: 'email' is required."
+                correlationId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+
+    Unauthorized:
+      description: >
+        Unauthorized. The client_id or client_secret header is missing or
+        invalid. This response is produced by the API Manager Client ID
+        Enforcement policy before the request reaches the Mule flow.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            unauthorized:
+              summary: Missing or invalid client credentials
+              value:
+                code: "UNAUTHORIZED"
+                message: "Client credentials are missing or invalid."
+                correlationId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+
+    NotFound:
+      description: >
+        Not found. The requested path does not exist in the API
+        (APIkit APIKIT:NOT_FOUND). No user lookup was attempted.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            notFound:
+              summary: Unknown path
+              value:
+                code: "NOT_FOUND"
+                message: "The requested resource was not found."
+                correlationId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+
+    UserOrNotFound:
+      description: >
+        Not found. Either the requested path does not exist in the API
+        (APIKIT:NOT_FOUND, code NOT_FOUND) or DummyJSON returned 404 for the
+        given userId (HTTP:NOT_FOUND, code USER_NOT_FOUND).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            notFound:
+              summary: Unknown path (APIkit APIKIT:NOT_FOUND)
+              value:
+                code: "NOT_FOUND"
+                message: "The requested resource was not found."
+                correlationId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+            userNotFound:
+              summary: User not found (DummyJSON HTTP:NOT_FOUND)
+              value:
+                code: "USER_NOT_FOUND"
+                message: "User with id '9999' not found."
+                correlationId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+
+    MethodNotAllowed:
+      description: >
+        Method not allowed. The path exists but the HTTP method is not defined
+        for it (APIkit APIKIT:METHOD_NOT_ALLOWED).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            methodNotAllowed:
+              summary: HTTP method not supported on this path
+              value:
+                code: "METHOD_NOT_ALLOWED"
+                message: "HTTP method is not allowed for this resource."
+                correlationId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+
+    TooManyRequests:
+      description: >
+        Too many requests. The rate-limiting policy applied in API Manager has
+        been exceeded for this client.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            tooManyRequests:
+              summary: Rate limit exceeded
+              value:
+                code: "TOO_MANY_REQUESTS"
+                message: "Rate limit exceeded. Too many requests in a short period."
+                correlationId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+
+    BackendError:
+      description: >
+        Bad gateway. DummyJSON returned an HTTP 5xx response. Mapped from
+        HTTP:INTERNAL_SERVER_ERROR, HTTP:BAD_GATEWAY, or
+        HTTP:SERVICE_UNAVAILABLE.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            backendError:
+              summary: Upstream 5xx from DummyJSON
+              value:
+                code: "BACKEND_ERROR"
+                message: "The upstream service returned an error."
+                correlationId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+
+    BackendTimeout:
+      description: >
+        Gateway timeout. DummyJSON did not respond within the configured
+        dummyjson.timeout (default 10 000 ms). Mapped from HTTP:TIMEOUT.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            backendTimeout:
+              summary: DummyJSON response timeout
+              value:
+                code: "BACKEND_TIMEOUT"
+                message: "The upstream service did not respond within the allowed timeout."
+                correlationId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+
+    InternalError:
+      description: >
+        Internal server error. An unexpected error occurred that does not
+        map to any other defined error type.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            internalError:
+              summary: Unexpected error
+              value:
+                code: "INTERNAL_ERROR"
+                message: "An unexpected error occurred."
+                correlationId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+
+paths:
+
+  /users:
+    get:
+      tags:
+        - Users
+      operationId: listUsers
+      summary: List users
+      description: >
+        Returns a paginated list of users fetched from DummyJSON GET /users.
+        The response shape is reshaped from DummyJSON's
+        { users, total, skip, limit } to { data, page }. Only whitelisted
+        fields are included; sensitive fields are dropped.
+      parameters:
+        - $ref: "#/components/parameters/limit"
+        - $ref: "#/components/parameters/skip"
+        - $ref: "#/components/parameters/sortBy"
+        - $ref: "#/components/parameters/order"
+      responses:
+        "200":
+          description: Paginated user list.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsersListResponse"
+              examples:
+                success:
+                  summary: First page, default limit of 30
+                  value:
+                    data:
+                      - id: 1
+                        firstName: "Emily"
+                        lastName: "Johnson"
+                        email: "emily.johnson@x.dummyjson.com"
+                        phone: "+81 965-431-3024"
+                        username: "emilys"
+                        age: 29
+                        gender: "female"
+                        birthDate: "1996-05-30"
+                        role: "admin"
+                        image: "https://dummyjson.com/icon/emilys/128"
+                        address:
+                          address: "626 Main Street"
+                          city: "Phoenix"
+                          state: "Mississippi"
+                          postalCode: "29112"
+                          country: "United States"
+                        company:
+                          name: "Dooley, Kozey and Cronin"
+                          department: "Engineering"
+                          title: "Sales Manager"
+                      - id: 2
+                        firstName: "Michael"
+                        lastName: "Williams"
+                        email: "michael.williams@x.dummyjson.com"
+                        phone: "+49 258-627-6644"
+                        username: "michaelw"
+                        age: 36
+                        gender: "male"
+                        birthDate: "1989-08-10"
+                        role: "admin"
+                        image: "https://dummyjson.com/icon/michaelw/128"
+                        address:
+                          address: "385 Fifth Street"
+                          city: "Houston"
+                          state: "Alabama"
+                          postalCode: "38807"
+                          country: "United States"
+                        company:
+                          name: "Spinka - Dickinson"
+                          department: "Support"
+                          title: "Support Specialist"
+                    page:
+                      total: 208
+                      limit: 30
+                      skip: 0
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalError"
+        "502":
+          $ref: "#/components/responses/BackendError"
+        "504":
+          $ref: "#/components/responses/BackendTimeout"
+
+    post:
+      tags:
+        - Users
+      operationId: createUser
+      summary: Create a user
+      description: >
+        Creates a new user by proxying to DummyJSON POST /users/add.
+        DummyJSON simulates the operation and always returns id 209; no data
+        is persisted. The response is passed through the field whitelist, so
+        empty strings and empty nested objects returned by DummyJSON are
+        dropped before the response is sent to the client.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserInput"
+            examples:
+              minimalCreate:
+                summary: Required fields only
+                value:
+                  firstName: "Ann"
+                  lastName: "Lee"
+                  email: "ann@example.com"
+                  age: 30
+              fullCreate:
+                summary: All optional fields included
+                value:
+                  firstName: "Ann"
+                  lastName: "Lee"
+                  email: "ann@example.com"
+                  age: 30
+                  phone: "+1 555-123-4567"
+                  username: "annlee"
+                  gender: "female"
+                  birthDate: "1994-07-15"
+                  role: "user"
+      responses:
+        "201":
+          description: >
+            User created. DummyJSON always returns id 209. Fields not sent in
+            the request body are returned as empty strings by DummyJSON and
+            dropped by the DataWeave whitelist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+              examples:
+                created:
+                  summary: Created user with empty fields removed
+                  value:
+                    id: 209
+                    firstName: "Ann"
+                    lastName: "Lee"
+                    email: "ann@example.com"
+                    age: 30
+                    role: "user"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalError"
+        "502":
+          $ref: "#/components/responses/BackendError"
+        "504":
+          $ref: "#/components/responses/BackendTimeout"
+
+  /users/{userId}:
+    parameters:
+      - $ref: "#/components/parameters/userId"
+
+    get:
+      tags:
+        - Users
+      operationId: getUserById
+      summary: Get user by ID
+      description: >
+        Returns a single user from DummyJSON GET /users/{id}. Sensitive fields
+        are removed. Returns 404 if the user ID does not exist in DummyJSON.
+      responses:
+        "200":
+          description: User found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+              examples:
+                success:
+                  summary: Existing user (id 1)
+                  value:
+                    id: 1
+                    firstName: "Emily"
+                    lastName: "Johnson"
+                    email: "emily.johnson@x.dummyjson.com"
+                    phone: "+81 965-431-3024"
+                    username: "emilys"
+                    age: 29
+                    gender: "female"
+                    birthDate: "1996-05-30"
+                    role: "admin"
+                    image: "https://dummyjson.com/icon/emilys/128"
+                    address:
+                      address: "626 Main Street"
+                      city: "Phoenix"
+                      state: "Mississippi"
+                      postalCode: "29112"
+                      country: "United States"
+                    company:
+                      name: "Dooley, Kozey and Cronin"
+                      department: "Engineering"
+                      title: "Sales Manager"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/UserOrNotFound"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalError"
+        "502":
+          $ref: "#/components/responses/BackendError"
+        "504":
+          $ref: "#/components/responses/BackendTimeout"
+
+    patch:
+      tags:
+        - Users
+      operationId: updateUser
+      summary: Partially update a user
+      description: >
+        Partially updates a user by proxying to DummyJSON PATCH /users/{id}.
+        At least one field must be provided in the request body. DummyJSON
+        simulates the update and returns the merged user record; no data is
+        persisted. Returns 404 if the user ID does not exist.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdate"
+            examples:
+              updateLastName:
+                summary: Change last name only
+                value:
+                  lastName: "Changed"
+              updateMultiple:
+                summary: Update multiple fields
+                value:
+                  lastName: "Smith"
+                  email: "emily.smith@example.com"
+                  role: "moderator"
+      responses:
+        "200":
+          description: User updated. DummyJSON returns the merged user record.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+              examples:
+                updated:
+                  summary: User after last name update
+                  value:
+                    id: 1
+                    firstName: "Emily"
+                    lastName: "Changed"
+                    email: "emily.johnson@x.dummyjson.com"
+                    phone: "+81 965-431-3024"
+                    username: "emilys"
+                    age: 29
+                    gender: "female"
+                    birthDate: "1996-05-30"
+                    role: "admin"
+                    image: "https://dummyjson.com/icon/emilys/128"
+                    address:
+                      address: "626 Main Street"
+                      city: "Phoenix"
+                      state: "Mississippi"
+                      postalCode: "29112"
+                      country: "United States"
+                    company:
+                      name: "Dooley, Kozey and Cronin"
+                      department: "Engineering"
+                      title: "Sales Manager"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/UserOrNotFound"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalError"
+        "502":
+          $ref: "#/components/responses/BackendError"
+        "504":
+          $ref: "#/components/responses/BackendTimeout"
+
+    delete:
+      tags:
+        - Users
+      operationId: deleteUser
+      summary: Delete a user
+      description: >
+        Deletes a user by proxying to DummyJSON DELETE /users/{id}. DummyJSON
+        simulates the deletion and returns the original user record with
+        isDeleted and deletedOn fields. The Mule app maps this to
+        { id, deleted: true, deletedOn }. No data is removed. Returns 404 if
+        the user ID does not exist.
+      responses:
+        "200":
+          description: >
+            Deletion acknowledged. DummyJSON simulates the deletion; the
+            original record is unchanged.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
+              examples:
+                deleted:
+                  summary: Deletion confirmation for user id 1
+                  value:
+                    id: 1
+                    deleted: true
+                    deletedOn: "2026-10-29T16:15:04.879Z"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/UserOrNotFound"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalError"
+        "502":
+          $ref: "#/components/responses/BackendError"
+        "504":
+          $ref: "#/components/responses/BackendTimeout"
